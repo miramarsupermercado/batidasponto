@@ -1,8 +1,8 @@
 // =================================================================
 // CONFIGURAÇÕES DA API DO GOOGLE DRIVE
-// O CLIENT_ID deve ser definido AQUI, uma única vez.
+// O CLIENT_ID foi copiado do seu Google Cloud Console.
 // =================================================================
-const CLIENT_ID = '731388237384-f2l4388im4a3rdhkj8vujj7er0rsgvdn.apps.googleusercontent.com';
+const CLIENT_ID = '731388237384-f2l4388im4a3rdhkj8vujj7er0rsgvdn.apps.googleusercontent.com'; //
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 const DATA_FILE_NAME = 'pontoData.json'; // Nome do arquivo a ser salvo no Drive
 let dataFileId = null; // Armazena o ID do arquivo no Drive após o primeiro salvamento
@@ -150,6 +150,8 @@ function handleAuthClick() {
   // Inicia o fluxo de login
   return GoogleAuth.signIn().then(() => true).catch(error => {
     console.error("Login falhou:", error);
+    // Este alert é disparado se a janela pop-up for fechada ou se houver falha de rede/origem.
+    alert("Você precisa fazer login no Google para salvar os registros."); 
     return false;
   });
 }
@@ -159,9 +161,9 @@ function handleAuthClick() {
  * @returns {Promise<Array>} Lista de registros.
  */
 async function carregarRegistros() {
-  // Não forçamos o login aqui, a menos que seja para salvar/processar
-  if (!gapi.auth2 || !gapi.auth2.getAuthInstance().isSignedIn.get()) {
-      return []; // Não logado, retorna vazio
+  // Não forçamos o login aqui, apenas verificamos se a API está pronta.
+  if (!gapi.client.drive || !gapi.auth2 || !gapi.auth2.getAuthInstance().isSignedIn.get()) {
+      return []; // API não pronta ou não logado, retorna vazio
   }
   
   try {
@@ -192,7 +194,8 @@ async function carregarRegistros() {
     return [];
 
   } catch (error) {
-    console.warn("Nenhum registro encontrado no Drive ou login expirado.", error);
+    // Console.warn para logs menos críticos
+    console.warn("Nenhum registro encontrado no Drive ou login expirado.", error); 
     return [];
   }
 }
@@ -203,7 +206,7 @@ async function carregarRegistros() {
 async function salvarRegistros(registros) {
   const isAuth = await handleAuthClick(); // Garante que o usuário esteja logado
   if (!isAuth) {
-    alert("Você precisa fazer login no Google para salvar os registros.");
+    // O alert já foi disparado em handleAuthClick, mas garantimos
     return;
   }
   
@@ -261,6 +264,12 @@ async function atualizarExibicao() {
  * ATUALIZADA: Agora é assíncrona e carrega do Drive antes de exportar.
  */
 async function exportarRegistros() {
+  const isAuth = await handleAuthClick();
+  if (!isAuth) {
+    alert("Você precisa fazer login no Google para exportar os registros.");
+    return;
+  }
+  
   const registros = await carregarRegistros(); // Carrega do Drive
   
   if (registros.length === 0) {
@@ -302,6 +311,14 @@ async function processarDados() {
     alert("Por favor, cole os dados brutos do ponto eletrônico.");
     return;
   }
+  
+  // Garante que o usuário esteja logado antes de fazer qualquer coisa
+  const isAuth = await handleAuthClick(); 
+  if (!isAuth) {
+    // O alerta já foi disparado dentro de handleAuthClick, não precisamos de outro aqui.
+    return;
+  }
+
 
   const linhas = rawData.split("\n").map(l => l.trim()).filter(l => l.length >= 38);
   const registrosNovos = [];
@@ -342,6 +359,9 @@ async function limparRegistros() {
         return; 
     }
     
+    // Tentamos carregar os registros primeiro para garantir que o dataFileId esteja atualizado
+    await carregarRegistros();
+    
     if (dataFileId) {
       try {
         await gapi.client.drive.files.delete({
@@ -367,16 +387,21 @@ async function limparRegistros() {
 
 /**
  * Inicializa a API do Google (gapi) após o carregamento da biblioteca.
+ * Inclui o carregamento explícito da API do Drive para evitar falhas silenciosas.
  */
 function initClient() {
+  // 1. Inicializa o cliente e a autenticação
   gapi.client.init({
     clientId: CLIENT_ID,
     scope: SCOPES
   }).then(() => {
-    // Tenta carregar os dados ao iniciar (se já estiver logado)
+    // 2. CARREGA a biblioteca específica do Google Drive v3
+    return gapi.client.load('drive', 'v3');
+  }).then(() => {
+    // 3. Sucesso: Tenta carregar os dados ao iniciar
     atualizarExibicao(); 
   }).catch(error => {
-    console.error("Erro ao inicializar a API do Google:", error);
+    console.error("Erro ao inicializar ou carregar a API do Google Drive:", error);
     document.getElementById("resultado").innerHTML = "<h2>Erro ao conectar com o Google Drive. Verifique a console.</h2>";
   });
 }
@@ -406,5 +431,6 @@ document.getElementById('btnExportar').insertAdjacentElement('afterend', btnLimp
 
 // Ao carregar a página, inicializa a API do Google
 window.addEventListener('load', () => {
+    // gapi é carregado pelo <script> no HTML. Aqui garantimos que ele inicie
     gapi.load('client:auth2', initClient); 
 });
