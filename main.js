@@ -1,3 +1,15 @@
+// =================================================================
+// CONFIGURAÇÕES DA API DO GOOGLE DRIVE
+// O CLIENT_ID deve ser definido AQUI, uma única vez.
+// =================================================================
+const CLIENT_ID = '731386227384-f2l438m4a3rdfhf5kuaj76f6rdiqrdn.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+const DATA_FILE_NAME = 'pontoData.json'; // Nome do arquivo a ser salvo no Drive
+let dataFileId = null; // Armazena o ID do arquivo no Drive após o primeiro salvamento
+
+// =================================================================
+// DADOS DE PIS PARA NOME (MANTIDO)
+// =================================================================
 const pisToName = {
   "013253304190": "ZEZINHO",
   "016053553973": "WELDO",
@@ -58,6 +70,9 @@ const pisToName = {
   "016478355951": "MARIA EDUARDA"
 };
 
+// =================================================================
+// FUNÇÕES DE PARSING E EXIBIÇÃO (MANTIDAS)
+// =================================================================
 function parseRegistro(reg) {
   if (reg.length < 38) return null;
 
@@ -118,30 +133,136 @@ function mergeRegistrosPreservandoOrdem(existing, incoming) {
   return resultado;
 }
 
-function carregarRegistros() {
-  const rawExistentes = localStorage.getItem('pontoData');
-  if (rawExistentes) {
-    try {
-      return JSON.parse(rawExistentes);
-    } catch {
-      return [];
-    }
+// =================================================================
+// NOVAS FUNÇÕES DE AUTENTICAÇÃO E DRIVE
+// =================================================================
+
+/**
+ * Lida com o processo de login / permissão (OAuth).
+ * @returns {Promise<boolean>} Retorna true se autenticado.
+ */
+function handleAuthClick() {
+  const GoogleAuth = gapi.auth2.getAuthInstance();
+  if (GoogleAuth.isSignedIn.get()) {
+    return Promise.resolve(true); // Já logado
   }
-  return [];
+  
+  // Inicia o fluxo de login
+  return GoogleAuth.signIn().then(() => true).catch(error => {
+    console.error("Login falhou:", error);
+    return false;
+  });
 }
 
-function salvarRegistros(registros) {
-  localStorage.setItem('pontoData', JSON.stringify(registros));
+/**
+ * Tenta carregar os registros do Google Drive.
+ * @returns {Promise<Array>} Lista de registros.
+ */
+async function carregarRegistros() {
+  // Não forçamos o login aqui, a menos que seja para salvar/processar
+  if (!gapi.auth2 || !gapi.auth2.getAuthInstance().isSignedIn.get()) {
+      return []; // Não logado, retorna vazio
+  }
+  
+  try {
+    // 1. Tenta encontrar o arquivo pelo nome
+    const response = await gapi.client.drive.files.list({
+      q: `name='${DATA_FILE_NAME}' and trashed=false`,
+      spaces: 'drive',
+      fields: 'files(id, name)',
+      pageSize: 1
+    });
+
+    const files = response.result.files;
+
+    if (files.length > 0) {
+      dataFileId = files[0].id; // Salva o ID do arquivo
+      
+      // 2. Baixa o conteúdo do arquivo
+      const mediaResponse = await gapi.client.drive.files.get({
+        fileId: dataFileId,
+        alt: 'media' 
+      });
+
+      return JSON.parse(mediaResponse.body);
+    }
+    
+    // Arquivo não encontrado
+    dataFileId = null; 
+    return [];
+
+  } catch (error) {
+    console.warn("Nenhum registro encontrado no Drive ou login expirado.", error);
+    return [];
+  }
 }
 
-function atualizarExibicao() {
-  const registrosSalvos = carregarRegistros();
+/**
+ * Salva os registros no Google Drive (cria ou atualiza).
+ */
+async function salvarRegistros(registros) {
+  const isAuth = await handleAuthClick(); // Garante que o usuário esteja logado
+  if (!isAuth) {
+    alert("Você precisa fazer login no Google para salvar os registros.");
+    return;
+  }
+  
+  const jsonContent = JSON.stringify(registros);
+  const metadata = {
+    name: DATA_FILE_NAME,
+    mimeType: 'application/json'
+  };
+
+  try {
+    if (dataFileId) {
+      // ATUALIZAÇÃO (PATCH)
+      await gapi.client.request({
+        path: `/upload/drive/v3/files/${dataFileId}`,
+        method: 'PATCH',
+        params: { uploadType: 'media' },
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: jsonContent
+      });
+      console.log('Registros atualizados no Drive.');
+
+    } else {
+      // CRIAÇÃO (POST)
+      const form = new FormData();
+      form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+      form.append('file', new Blob([jsonContent], { type: 'application/json' }));
+
+      const response = await gapi.client.request({
+        path: '/upload/drive/v3/files',
+        method: 'POST',
+        params: { uploadType: 'multipart' },
+        body: form
+      });
+      dataFileId = response.result.id;
+      console.log('Arquivo de registros criado no Drive.');
+    }
+  } catch (error) {
+    console.error("Erro ao salvar dados no Google Drive.", error);
+    alert("Erro ao salvar dados no Drive. Verifique a console e tente fazer login novamente.");
+  }
+}
+
+/**
+ * ATUALIZADA: Agora é assíncrona e carrega do Drive.
+ */
+async function atualizarExibicao() {
+  const registrosSalvos = await carregarRegistros();
   document.getElementById("resultado").innerHTML = exibirRegistros(registrosSalvos);
   document.getElementById("btnVerificacao").disabled = registrosSalvos.length === 0;
 }
 
-function exportarRegistros() {
-  const registros = carregarRegistros();
+/**
+ * ATUALIZADA: Agora é assíncrona e carrega do Drive antes de exportar.
+ */
+async function exportarRegistros() {
+  const registros = await carregarRegistros(); // Carrega do Drive
+  
   if (registros.length === 0) {
     alert('Não há registros para exportar.');
     return;
@@ -172,7 +293,10 @@ function exportarRegistros() {
   URL.revokeObjectURL(url);
 }
 
-function processarDados() {
+/**
+ * ATUALIZADA: Agora é assíncrona para chamar carregar/salvar do Drive.
+ */
+async function processarDados() {
   const rawData = document.getElementById("pontoData").value.trim();
   if (!rawData) {
     alert("Por favor, cole os dados brutos do ponto eletrônico.");
@@ -194,17 +318,67 @@ function processarDados() {
     return;
   }
 
-  let registrosExistentes = carregarRegistros();
+  let registrosExistentes = await carregarRegistros(); // Carrega assincronamente do Drive
 
-  // Mescla registros sem perder os antigos e mantendo a ordem dos novos no final
+  // Mescla registros
   const registrosCompletos = mergeRegistrosPreservandoOrdem(registrosExistentes, registrosNovos);
-  salvarRegistros(registrosCompletos);
+  
+  await salvarRegistros(registrosCompletos); // Salva assincronamente no Drive
 
   // Atualiza exibição com todos os registros (antigos + novos)
-  atualizarExibicao();
+  await atualizarExibicao();
 
-  // Limpa o campo após processamento opcionalmente
   // document.getElementById("pontoData").value = '';
+}
+
+/**
+ * ATUALIZADA: Agora é assíncrona e tenta excluir o arquivo do Drive.
+ */
+async function limparRegistros() {
+  if (confirm("Tem certeza que deseja excluir todos os registros? Esta ação não pode ser desfeita e irá DELETAR o arquivo do Google Drive.")) {
+    const isAuth = await handleAuthClick();
+    if (!isAuth) {
+        alert("Você precisa estar logado para excluir o arquivo do Google Drive.");
+        return; 
+    }
+    
+    if (dataFileId) {
+      try {
+        await gapi.client.drive.files.delete({
+          fileId: dataFileId
+        });
+        dataFileId = null; 
+        alert("Arquivo de registros excluído do Google Drive.");
+      } catch (error) {
+        console.error("Erro ao excluir o arquivo do Drive:", error);
+        alert("Erro ao excluir o arquivo do Drive. Verifique a console.");
+      }
+    } else {
+        alert("Nenhum arquivo de registro encontrado no Drive para exclusão.");
+    }
+    // Força a atualização da exibição para limpar a tabela
+    await atualizarExibicao(); 
+  }
+}
+
+// =================================================================
+// INICIALIZAÇÃO E EVENTOS
+// =================================================================
+
+/**
+ * Inicializa a API do Google (gapi) após o carregamento da biblioteca.
+ */
+function initClient() {
+  gapi.client.init({
+    clientId: CLIENT_ID,
+    scope: SCOPES
+  }).then(() => {
+    // Tenta carregar os dados ao iniciar (se já estiver logado)
+    atualizarExibicao(); 
+  }).catch(error => {
+    console.error("Erro ao inicializar a API do Google:", error);
+    document.getElementById("resultado").innerHTML = "<h2>Erro ao conectar com o Google Drive. Verifique a console.</h2>";
+  });
 }
 
 document.getElementById("btnProcessar").addEventListener("click", processarDados);
@@ -220,14 +394,6 @@ btnExportar.style.marginLeft = '10px';
 btnExportar.addEventListener('click', exportarRegistros);
 document.getElementById('btnVerificacao').insertAdjacentElement('afterend', btnExportar);
 
-// Função para limpar todos os registros salvos
-function limparRegistros() {
-  if (confirm("Tem certeza que deseja excluir todos os registros? Esta ação não pode ser desfeita.")) {
-    localStorage.removeItem('pontoData');
-    atualizarExibicao();
-  }
-}
-
 // Cria botão para limpar registros e adiciona evento
 const btnLimpar = document.createElement('button');
 btnLimpar.id = 'btnLimpar';
@@ -238,7 +404,7 @@ btnLimpar.addEventListener('click', limparRegistros);
 // Insere o botão limpar após o botão exportar
 document.getElementById('btnExportar').insertAdjacentElement('afterend', btnLimpar);
 
-// Ao carregar a página, exibe os registros salvos para persistência visual
+// Ao carregar a página, inicializa a API do Google
 window.addEventListener('load', () => {
-  atualizarExibicao();
+    gapi.load('client:auth2', initClient); 
 });
