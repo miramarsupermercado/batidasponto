@@ -2,7 +2,7 @@
 // CONFIGURAÇÕES DA API DO GOOGLE DRIVE
 // O CLIENT_ID deve ser definido AQUI, uma única vez.
 // =================================================================
-const CLIENT_ID = '731386227384-f2l438m4a3rdfhf5kuaj76f6rdiqrdn.apps.googleusercontent.com';
+const CLIENT_ID = '731388237384-f2l4388im4a3rdhkj8vujj7er0rsgvdn.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 const DATA_FILE_NAME = 'pontoData.json'; // Nome do arquivo a ser salvo no Drive
 let dataFileId = null; // Armazena o ID do arquivo no Drive após o primeiro salvamento
