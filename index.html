@@ -7,17 +7,19 @@
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-<h1>Ponto Eletrônico - Entrada de Dados</h1>
+<h1>⏰ Ponto Eletrônico - Entrada de Dados</h1>
 
 <p>Cole os dados brutos do ponto eletrônico (uma linha por registro):</p>
-<textarea id="pontoData" placeholder="Cole aqui os registros do ponto..."></textarea><br />
+<textarea id="pontoData" placeholder="Cole aqui os registros brutos do REP (Registro Eletrônico de Ponto)..."></textarea><br />
 
-<button id="btnProcessar">Processar Dados</button>
-<button id="btnVerificacao" disabled>Ir para Verificação</button>
+<button id="btnProcessar">⚙️ Processar e Sincronizar (Drime)</button>
+<button id="btnVerificacao" disabled>🔍 Ir para Verificação</button>
 
-<div id="resultado"></div>
+<hr>
 
-<script src="https://apis.google.com/js/api.js"></script>
+<div id="resultado">
+    <p>Carregando registros salvos localmente...</p>
+</div>
 
 <script src="main.js"></script>
 </body>
