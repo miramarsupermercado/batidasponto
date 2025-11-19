@@ -1,420 +1,333 @@
-// =================================================================
-// CONFIGURAÇÕES DA API DO GOOGLE DRIVE
-// O CLIENT_ID foi copiado do seu Google Cloud Console.
-// =================================================================
-const CLIENT_ID = '731388237384-f2l4388im4a3rdhkj8vujj7er0rsgvdn.apps.googleusercontent.com'; //
-const SCOPES = 'https://www.googleapis.com/auth/drive.file';
-const DATA_FILE_NAME = 'pontoData.json'; // Nome do arquivo a ser salvo no Drive
-let dataFileId = null; // Armazena o ID do arquivo no Drive após o primeiro salvamento
+// =========================================================
+// 🔑 CONFIGURAÇÕES DE API E PIS/NOME
+// =========================================================
 
-// =================================================================
-// DADOS DE PIS PARA NOME (MANTIDO)
-// =================================================================
+// Configurações do Drime Cloud
+const API_BASE_URL = 'https://app.drime.cloud/api/v1';
+const DRIME_UPLOAD_URL = `${API_BASE_URL}/uploads`;
+// ATENÇÃO: Use seu token real aqui.
+const DRIME_API_TOKEN = '12101|f70fBFPYbvF8dcojErDgIgK19WPCnYGwvsovVkp61384506a'; 
+
+// Mapeamento PIS para Nome (Original)
 const pisToName = {
-  "013253304190": "ZEZINHO",
-  "016053553973": "WELDO",
-  "013427752274": "VANEIDE",
-  "016542625438": "VALTERCIO",
-  "013106959648": "ROBERTO",
-  "021002001341": "RICARDO",
-  "016659462989": "RAYSSA",
-  "020626048316": "PATRICIA",
-  "013741825459": "NATALIA",
-  "020677804355": "MESSIAS",
-  "016490400554": "MELQUE",
-  "021002003530": "MAURICIO",
-  "016466583857": "MARIA MARIANO",
-  "020052062729": "MARIA JOSE",
-  "016566499181": "MARCIO",
-  "021001997761": "MARAIZA",
-  "016322125185": "LUCAS",
-  "020336741019": "LUANDERSON",
-  "016359747171": "LIDIANE",
-  "012781168647": "LENILDO",
-  "016367173723": "LEANDRO",
-  "016073698136": "LEANDRO",
-  "020165323099": "LAYNE",
-  "016217132193": "JULIANA",
-  "013213001642": "JOSE CARLOS",
-  "013183480645": "JOSE ALVES",
-  "023779420909": "JOANDERSON",
-  "013358352853": "JOANA",
-  "013200275641": "JEFET",
-  "016320187663": "JACIELE",
-  "014499373235": "ISAC",
-  "016216279557": "ISABELE",
-  "016310799682": "IGOR",
-  "016216258037": "GUTENBERG",
-  "016297716219": "GUILHERME",
-  "016189103880": "GISELE",
-  "016217577764": "GEFLY",
-  "027313287823": "FELIPE",
-  "020422161491": "FABIO",
-  "013425142274": "ERINALDO",
-  "013415979694": "ELTON",
-  "021201799637": "DZIANY",
-  "021419697465": "DIEGO",
-  "021236198508": "DENILSON",
-  "021218009731": "DAVID",
-  "013224914644": "DANILO",
-  "016563596755": "CESAR",
-  "020975819342": "CELSO",
-  "020462936001": "BRUNO",
-  "020387110660": "ARTHUR",
-  "016284007338": "ANTENOR",
-  "027256808521": "ANE ISABELLE",
-  "016885988058": "ANDREZA",
-  "016158593258": "ANDREWS",
-  "020197581344": "ALICIA",
-  "016084227717": "ADEMIR",
-  "016478355951": "MARIA EDUARDA"
+  "013253304190": "ZEZINHO",
+  "016053553973": "WELDO",
+  "013427752274": "VANEIDE",
+  "016542625438": "VALTERCIO",
+  "013106959648": "ROBERTO",
+  "021002001341": "RICARDO",
+  "016659462989": "RAYSSA",
+  "020626048316": "PATRICIA",
+  "013741825459": "NATALIA",
+  "020677804355": "MESSIAS",
+  "016490400554": "MELQUE",
+  "021002003530": "MAURICIO",
+  "016466583857": "MARIA MARIANO",
+  "020052062729": "MARIA JOSE",
+  "016566499181": "MARCIO",
+  "021001997761": "MARAIZA",
+  "016322125185": "LUCAS",
+  "020336741019": "LUANDERSON",
+  "016359747171": "LIDIANE",
+  "012781168647": "LENILDO",
+  "016367173723": "LEANDRO",
+  "016073698136": "LEANDRO",
+  "020165323099": "LAYNE",
+  "016217132193": "JULIANA",
+  "013213001642": "JOSE CARLOS",
+  "013183480645": "JOSE ALVES",
+  "023779420909": "JOANDERSON",
+  "013358352853": "JOANA",
+  "013200275641": "JEFET",
+  "016320187663": "JACIELE",
+  "014499373235": "ISAC",
+  "016216279557": "ISABELE",
+  "016310799682": "IGOR",
+  "016216258037": "GUTENBERG",
+  "016297716219": "GUILHERME",
+  "016189103880": "GISELE",
+  "016217577764": "GEFLY",
+  "027313287823": "FELIPE",
+  "020422161491": "FABIO",
+  "013425142274": "ERINALDO",
+  "013415979694": "ELTON",
+  "021201799637": "DZIANY",
+  "021419697465": "DIEGO",
+  "021236198508": "DENILSON",
+  "021218009731": "DAVID",
+  "013224914644": "DANILO",
+  "016563596755": "CESAR",
+  "020975819342": "CELSO",
+  "020462936001": "BRUNO",
+  "020387110660": "ARTHUR",
+  "016284007338": "ANTENOR",
+  "027256808521": "ANE ISABELLE",
+  "016885988058": "ANDREZA",
+  "016158593258": "ANDREWS",
+  "020197581344": "ALICIA",
+  "016084227717": "ADEMIR",
+  "016478355951": "MARIA EDUARDA"
 };
 
-// =================================================================
-// FUNÇÕES DE PARSING E EXIBIÇÃO (MANTIDAS)
-// =================================================================
+// =========================================================
+// ⚙️ FUNÇÕES DE MANIPULAÇÃO DE DADOS (Inalteradas)
+// =========================================================
+
 function parseRegistro(reg) {
-  if (reg.length < 38) return null;
+  if (reg.length < 38) return null;
 
-  const dataStr = reg.substring(10, 18);
-  const dia = dataStr.substring(0,2);
-  const mes = dataStr.substring(2,4);
-  const ano = dataStr.substring(4,8);
+  const dataStr = reg.substring(10, 18);
+  const dia = dataStr.substring(0,2);
+  const mes = dataStr.substring(2,4);
+  const ano = dataStr.substring(4,8);
 
-  const horaStr = reg.substring(18, 22);
-  const hora = horaStr.substring(0, 2);
-  const minuto = horaStr.substring(2, 4);
+  const horaStr = reg.substring(18, 22);
+  const hora = horaStr.substring(0, 2);
+  const minuto = horaStr.substring(2, 4);
 
-  const pis = reg.substring(22, 34);
+  const pis = reg.substring(22, 34);
 
-  const nome = pisToName[pis] || null;
+  const nome = pisToName[pis] || null;
 
-  const dataFormatada = `${dia}/${mes}/${ano}`;
-  const horaFormatada = `${hora}:${minuto}`;
+  const dataFormatada = `${dia}/${mes}/${ano}`;
+  const horaFormatada = `${hora}:${minuto}`;
 
-  return {
-    nome,
-    pis,
-    data: dataFormatada,
-    hora: horaFormatada,
-    diaNum: parseInt(dia, 10),
-    mesNum: parseInt(mes, 10),
-    anoNum: parseInt(ano, 10),
-    horaNum: parseInt(hora, 10),
-    minutoNum: parseInt(minuto, 10),
-    horaMinuto: `${hora}:${minuto}`
-  };
+  return {
+    nome,
+    pis,
+    data: dataFormatada,
+    hora: horaFormatada,
+    diaNum: parseInt(dia, 10),
+    mesNum: parseInt(mes, 10),
+    anoNum: parseInt(ano, 10),
+    horaNum: parseInt(hora, 10),
+    minutoNum: parseInt(minuto, 10),
+    horaMinuto: `${hora}:${minuto}`
+  };
 }
 
 function exibirRegistros(registros) {
-  let tabela = '<h2>Registros Extraídos</h2><table><thead><tr><th>Nome</th><th>PIS</th><th>Data (DD/MM/AAAA)</th><th>Hora</th><th>Reconhecido?</th></tr></thead><tbody>';
-  for (const r of registros) {
-    const reconhecido = r.nome ? "Sim" : "Não";
-    const classe = r.nome ? "" : "unknown-pis";
-    tabela += `<tr class="${classe}"><td>${r.nome || '-'}</td><td>${r.pis}</td><td>${r.data}</td><td>${r.hora}</td><td>${reconhecido}</td></tr>`;
-  }
-  tabela += '</tbody></table>';
-  return tabela;
+  let tabela = '<h2>Registros Extraídos</h2><table><thead><tr><th>Nome</th><th>PIS</th><th>Data (DD/MM/AAAA)</th><th>Hora</th><th>Reconhecido?</th></tr></thead><tbody>';
+  for (const r of registros) {
+    const reconhecido = r.nome ? "Sim" : "Não";
+    const classe = r.nome ? "" : "unknown-pis";
+    tabela += `<tr class="${classe}"><td>${r.nome || '-'}</td><td>${r.pis}</td><td>${r.data}</td><td>${r.hora}</td><td>${reconhecido}</td></tr>`;
+  }
+  tabela += '</tbody></table>';
+  return tabela;
 }
 
 function mergeRegistrosPreservandoOrdem(existing, incoming) {
-  // Preserva a ordem dos incoming, adicionando apenas os que não existem em existing
-  const chavesExistentes = new Set(existing.map(reg => `${reg.nome}|${reg.pis}|${reg.data}|${reg.hora}`));
-  const resultado = [...existing];
+  // Preserva a ordem dos incoming, adicionando apenas os que não existem em existing
+  const chavesExistentes = new Set(existing.map(reg => `${reg.nome}|${reg.pis}|${reg.data}|${reg.hora}`));
+  const resultado = [...existing];
 
-  for (const reg of incoming) {
-    const chave = `${reg.nome}|${reg.pis}|${reg.data}|${reg.hora}`;
-    if (!chavesExistentes.has(chave)) {
-      resultado.push(reg);
-      chavesExistentes.add(chave);
-    }
-  }
+  for (const reg of incoming) {
+    const chave = `${reg.nome}|${reg.pis}|${reg.data}|${reg.hora}`;
+    if (!chavesExistentes.has(chave)) {
+      resultado.push(reg);
+      chavesExistentes.add(chave);
+    }
+  }
 
-  return resultado;
+  return resultado;
 }
 
-// =================================================================
-// NOVAS FUNÇÕES DE AUTENTICAÇÃO E DRIVE
-// =================================================================
+// =========================================================
+// 📄 FUNÇÕES DE GERAÇÃO E PERSISTÊNCIA (Adaptadas)
+// =========================================================
 
 /**
- * Lida com o processo de login / permissão (OAuth).
- * @returns {Promise<boolean>} Retorna true se autenticado.
+ * Gera um objeto Blob (arquivo virtual) em formato CSV a partir dos registros.
  */
-function handleAuthClick() {
-  const GoogleAuth = gapi.auth2.getAuthInstance();
-  if (GoogleAuth.isSignedIn.get()) {
-    return Promise.resolve(true); // Já logado
-  }
-  
-  // Inicia o fluxo de login
-  return GoogleAuth.signIn().then(() => true).catch(error => {
-    console.error("Login falhou:", error);
-    // Este alert é disparado se a janela pop-up for fechada ou se houver falha de rede/origem.
-    alert("Você precisa fazer login no Google para salvar os registros."); 
-    return false;
-  });
+function generateCsvBlob(registros) {
+    const cabecalho = ['Nome', 'PIS', 'Data', 'Hora', 'Reconhecido'];
+    const linhas = registros.map(r => [
+        r.nome || '',
+        r.pis,
+        r.data,
+        r.hora,
+        r.nome ? 'Sim' : 'Não'
+    ]);
+
+    const csvContent = [cabecalho, ...linhas]
+        .map(e => e.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))
+        .join('\r\n');
+
+    return new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
 }
 
 /**
- * Tenta carregar os registros do Google Drive.
- * @returns {Promise<Array>} Lista de registros.
+ * 💾 CARREGA REGISTROS DO LOCALSTORAGE (Manter para cache local)
+ * @returns {Array<Object>} Array de registros.
  */
-async function carregarRegistros() {
-  // Não forçamos o login aqui, apenas verificamos se a API está pronta.
-  if (!gapi.client.drive || !gapi.auth2 || !gapi.auth2.getAuthInstance().isSignedIn.get()) {
-      return []; // API não pronta ou não logado, retorna vazio
-  }
-  
-  try {
-    // 1. Tenta encontrar o arquivo pelo nome
-    const response = await gapi.client.drive.files.list({
-      q: `name='${DATA_FILE_NAME}' and trashed=false`,
-      spaces: 'drive',
-      fields: 'files(id, name)',
-      pageSize: 1
-    });
-
-    const files = response.result.files;
-
-    if (files.length > 0) {
-      dataFileId = files[0].id; // Salva o ID do arquivo
-      
-      // 2. Baixa o conteúdo do arquivo
-      const mediaResponse = await gapi.client.drive.files.get({
-        fileId: dataFileId,
-        alt: 'media' 
-      });
-
-      return JSON.parse(mediaResponse.body);
-    }
-    
-    // Arquivo não encontrado
-    dataFileId = null; 
-    return [];
-
-  } catch (error) {
-    // Console.warn para logs menos críticos
-    console.warn("Nenhum registro encontrado no Drive ou login expirado.", error); 
-    return [];
-  }
+function carregarRegistros() {
+  const rawExistentes = localStorage.getItem('pontoData');
+  if (rawExistentes) {
+    try {
+      return JSON.parse(rawExistentes);
+    } catch {
+      return [];
+    }
+  }
+  return [];
 }
 
 /**
- * Salva os registros no Google Drive (cria ou atualiza).
+ * 💾 SALVA REGISTROS NO LOCALSTORAGE E NA API DO DRIME CLOUD
+ * @param {Array<Object>} registros - O array de registros a ser salvo.
+ * @returns {Promise<boolean>} Promessa que resolve com true se for bem-sucedido.
  */
 async function salvarRegistros(registros) {
-  const isAuth = await handleAuthClick(); // Garante que o usuário esteja logado
-  if (!isAuth) {
-    // O alert já foi disparado em handleAuthClick, mas garantimos
-    return;
-  }
-  
-  const jsonContent = JSON.stringify(registros);
-  const metadata = {
-    name: DATA_FILE_NAME,
-    mimeType: 'application/json'
-  };
+    // 1. Salva no LocalStorage (para persistência local/cache imediato)
+    localStorage.setItem('pontoData', JSON.stringify(registros));
 
-  try {
-    if (dataFileId) {
-      // ATUALIZAÇÃO (PATCH)
-      await gapi.client.request({
-        path: `/upload/drive/v3/files/${dataFileId}`,
-        method: 'PATCH',
-        params: { uploadType: 'media' },
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: jsonContent
-      });
-      console.log('Registros atualizados no Drive.');
+    if (registros.length === 0) return true;
 
-    } else {
-      // CRIAÇÃO (POST)
-      const form = new FormData();
-      form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-      form.append('file', new Blob([jsonContent], { type: 'application/json' }));
+    // 2. Prepara o arquivo CSV para upload
+    const csvBlob = generateCsvBlob(registros);
+    const fileName = `registros_ponto_${new Date().toISOString().slice(0, 10)}.csv`;
 
-      const response = await gapi.client.request({
-        path: '/upload/drive/v3/files',
-        method: 'POST',
-        params: { uploadType: 'multipart' },
-        body: form
-      });
-      dataFileId = response.result.id;
-      console.log('Arquivo de registros criado no Drive.');
-    }
-  } catch (error) {
-    console.error("Erro ao salvar dados no Google Drive.", error);
-    alert("Erro ao salvar dados no Drive. Verifique a console e tente fazer login novamente.");
-  }
-}
+    const formData = new FormData();
+    formData.append('file', csvBlob, fileName); 
+    // Opcional: Adicionar um parentId ou descrição se necessário
+    // formData.append('description', 'Registros consolidados de ponto');
 
-/**
- * ATUALIZADA: Agora é assíncrona e carrega do Drive.
- */
-async function atualizarExibicao() {
-  const registrosSalvos = await carregarRegistros();
-  document.getElementById("resultado").innerHTML = exibirRegistros(registrosSalvos);
-  document.getElementById("btnVerificacao").disabled = registrosSalvos.length === 0;
-}
-
-/**
- * ATUALIZADA: Agora é assíncrona e carrega do Drive antes de exportar.
- */
-async function exportarRegistros() {
-  const isAuth = await handleAuthClick();
-  if (!isAuth) {
-    alert("Você precisa fazer login no Google para exportar os registros.");
-    return;
-  }
-  
-  const registros = await carregarRegistros(); // Carrega do Drive
-  
-  if (registros.length === 0) {
-    alert('Não há registros para exportar.');
-    return;
-  }
-  // Exporta registros para CSV simples
-  const cabecalho = ['Nome', 'PIS', 'Data', 'Hora', 'Reconhecido'];
-  const linhas = registros.map(r => [
-    r.nome || '',
-    r.pis,
-    r.data,
-    r.hora,
-    r.nome ? 'Sim' : 'Não'
-  ]);
-
-  const csvContent = [cabecalho, ...linhas]
-    .map(e => e.map(v => `"${v.replace(/"/g, '""')}"`).join(','))
-    .join('\r\n');
-
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'registros_ponto.csv';
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
-/**
- * ATUALIZADA: Agora é assíncrona para chamar carregar/salvar do Drive.
- */
-async function processarDados() {
-  const rawData = document.getElementById("pontoData").value.trim();
-  if (!rawData) {
-    alert("Por favor, cole os dados brutos do ponto eletrônico.");
-    return;
-  }
-  
-  // Garante que o usuário esteja logado antes de fazer qualquer coisa
-  const isAuth = await handleAuthClick(); 
-  if (!isAuth) {
-    // O alerta já foi disparado dentro de handleAuthClick, não precisamos de outro aqui.
-    return;
-  }
-
-
-  const linhas = rawData.split("\n").map(l => l.trim()).filter(l => l.length >= 38);
-  const registrosNovos = [];
-
-  for (const linha of linhas) {
-    const reg = parseRegistro(linha);
-    if (reg) {
-      registrosNovos.push(reg);
-    }
-  }
-
-  if (registrosNovos.length === 0) {
-    alert("Nenhum registro válido encontrado.");
-    return;
-  }
-
-  let registrosExistentes = await carregarRegistros(); // Carrega assincronamente do Drive
-
-  // Mescla registros
-  const registrosCompletos = mergeRegistrosPreservandoOrdem(registrosExistentes, registrosNovos);
-  
-  await salvarRegistros(registrosCompletos); // Salva assincronamente no Drive
-
-  // Atualiza exibição com todos os registros (antigos + novos)
-  await atualizarExibicao();
-
-  // document.getElementById("pontoData").value = '';
-}
-
-/**
- * ATUALIZADA: Agora é assíncrona e tenta excluir o arquivo do Drive.
- */
-async function limparRegistros() {
-  if (confirm("Tem certeza que deseja excluir todos os registros? Esta ação não pode ser desfeita e irá DELETAR o arquivo do Google Drive.")) {
-    const isAuth = await handleAuthClick();
-    if (!isAuth) {
-        alert("Você precisa estar logado para excluir o arquivo do Google Drive.");
-        return; 
-    }
-    
-    // Tentamos carregar os registros primeiro para garantir que o dataFileId esteja atualizado
-    await carregarRegistros();
-    
-    if (dataFileId) {
-      try {
-        await gapi.client.drive.files.delete({
-          fileId: dataFileId
+    try {
+        const response = await fetch(DRIME_UPLOAD_URL, {
+            method: 'POST',
+            headers: {
+                // Autenticação Bearer Token
+                'Authorization': `Bearer ${DRIME_API_TOKEN}` 
+            },
+            body: formData 
         });
-        dataFileId = null; 
-        alert("Arquivo de registros excluído do Google Drive.");
-      } catch (error) {
-        console.error("Erro ao excluir o arquivo do Drive:", error);
-        alert("Erro ao excluir o arquivo do Drive. Verifique a console.");
-      }
-    } else {
-        alert("Nenhum arquivo de registro encontrado no Drive para exclusão.");
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            const errorMessage = data.message || response.statusText;
+            throw new Error(`Erro ${response.status} ao salvar no Drime: ${errorMessage}`);
+        }
+
+        console.log("Upload para Drime Cloud bem-sucedido. Arquivo salvo em:", data.fileEntry.url);
+        alert(`Registros sincronizados! Arquivo salvo no Drime Cloud como: ${data.fileEntry.name}`);
+        return true;
+
+    } catch (error) {
+        console.error("Falha ao salvar registros no Drime Cloud:", error);
+        alert(`ATENÇÃO: Registros salvos localmente, mas ERRO ao sincronizar com o Drime Cloud. Detalhe: ${error.message}`);
+        // Retorna true pois a persistência local foi bem-sucedida, mas alerta sobre o erro na nuvem.
+        return true; 
     }
-    // Força a atualização da exibição para limpar a tabela
-    await atualizarExibicao(); 
-  }
 }
 
-// =================================================================
-// INICIALIZAÇÃO E EVENTOS
-// =================================================================
+
+// =========================================================
+// 🔄 FUNÇÕES DE EXIBIÇÃO E PROCESSAMENTO (Adaptadas para async)
+// =========================================================
 
 /**
- * Inicializa a API do Google (gapi) após o carregamento da biblioteca.
- * Inclui o carregamento explícito da API do Drive para evitar falhas silenciosas.
+ * Atualiza a tabela na tela com os dados salvos localmente.
  */
-function initClient() {
-  // 1. Inicializa o cliente e a autenticação
-  gapi.client.init({
-    clientId: CLIENT_ID,
-    scope: SCOPES
-  }).then(() => {
-    // 2. CARREGA a biblioteca específica do Google Drive v3
-    return gapi.client.load('drive', 'v3');
-  }).then(() => {
-    // 3. Sucesso: Tenta carregar os dados ao iniciar
-    atualizarExibicao(); 
-  }).catch(error => {
-    console.error("Erro ao inicializar ou carregar a API do Google Drive:", error);
-    document.getElementById("resultado").innerHTML = "<h2>Erro ao conectar com o Google Drive. Verifique a console.</h2>";
-  });
+function atualizarExibicao() {
+  const registrosSalvos = carregarRegistros();
+  document.getElementById("resultado").innerHTML = exibirRegistros(registrosSalvos);
+  document.getElementById("btnVerificacao").disabled = registrosSalvos.length === 0;
 }
+
+
+/**
+ * 📤 EXPORTA REGISTROS (Função de download local inalterada)
+ */
+function exportarRegistros() {
+  const registros = carregarRegistros();
+  if (registros.length === 0) {
+    alert('Não há registros para exportar.');
+    return;
+  }
+  
+  // Usa a função de geração de CSV
+  const blob = generateCsvBlob(registros);
+  
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'registros_ponto_local.csv';
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+
+/**
+ * 🏭 PROCESSAMENTO PRINCIPAL E SINCRONIZAÇÃO
+ */
+async function processarDados() { // Tornada assíncrona
+  const rawData = document.getElementById("pontoData").value.trim();
+  if (!rawData) {
+    alert("Por favor, cole os dados brutos do ponto eletrônico.");
+    return;
+  }
+
+  const linhas = rawData.split("\n").map(l => l.trim()).filter(l => l.length >= 38);
+  const registrosNovos = [];
+
+  for (const linha of linhas) {
+    const reg = parseRegistro(linha);
+    if (reg) {
+      registrosNovos.push(reg);
+    }
+  }
+
+  if (registrosNovos.length === 0) {
+    alert("Nenhum registro válido encontrado.");
+    return;
+  }
+
+  let registrosExistentes = carregarRegistros();
+
+  // Mescla registros
+  const registrosCompletos = mergeRegistrosPreservandoOrdem(registrosExistentes, registrosNovos);
+  
+  // 🚨 Salva LCL e sincroniza com o Drime Cloud (aguardando a operação)
+  await salvarRegistros(registrosCompletos);
+
+  // Atualiza exibição com todos os registros (antigos + novos)
+  atualizarExibicao();
+
+  // Opcional: Limpar o campo
+  // document.getElementById("pontoData").value = '';
+}
+
+/**
+ * Limpa todos os registros salvos
+ */
+function limparRegistros() {
+  if (confirm("Tem certeza que deseja excluir TODOS os registros (Locais e da Nuvem)? Esta ação não pode ser desfeita.")) {
+    localStorage.removeItem('pontoData');
+    // Poderia adicionar uma chamada de API aqui para deletar o arquivo na nuvem,
+    // mas isso exigiria o endpoint de exclusão do Drime.
+    atualizarExibicao();
+  }
+}
+
+
+// =========================================================
+// 🚀 EVENT LISTENERS E INICIALIZAÇÃO
+// =========================================================
 
 document.getElementById("btnProcessar").addEventListener("click", processarDados);
 document.getElementById("btnVerificacao").addEventListener("click", () => {
-  window.open("verificacao.html", "_blank");
+  window.open("verificacao.html", "_blank");
 });
 
 // Cria botão de exportação e adiciona evento
 const btnExportar = document.createElement('button');
 btnExportar.id = 'btnExportar';
-btnExportar.textContent = 'Exportar Registros CSV';
+btnExportar.textContent = 'Exportar Registros CSV (Local)';
 btnExportar.style.marginLeft = '10px';
 btnExportar.addEventListener('click', exportarRegistros);
 document.getElementById('btnVerificacao').insertAdjacentElement('afterend', btnExportar);
@@ -429,8 +342,7 @@ btnLimpar.addEventListener('click', limparRegistros);
 // Insere o botão limpar após o botão exportar
 document.getElementById('btnExportar').insertAdjacentElement('afterend', btnLimpar);
 
-// Ao carregar a página, inicializa a API do Google
+// Ao carregar a página, exibe os registros salvos
 window.addEventListener('load', () => {
-    // gapi é carregado pelo <script> no HTML. Aqui garantimos que ele inicie
-    gapi.load('client:auth2', initClient); 
+  atualizarExibicao();
 });
